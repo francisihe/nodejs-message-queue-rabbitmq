@@ -1,0 +1,113 @@
+version: '3.9'
+
+services:
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"  # AMQP protocol
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    networks:
+      - app-network
+
+  postgres:
+    image: "postgres:15"
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: notifications
+    networks:
+      - app-network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
+  ordering-service:
+    build: ./ordering-service
+    container_name: ordering-service
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network
+    environment:
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672
+      - NODE_ENV=production
+    volumes:
+      - ./ordering-service:/app
+    command: ["npm", "start"]
+
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory-service
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network
+    environment:
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672
+      - NODE_ENV=production
+    volumes:
+      - ./inventory-service:/app
+    command: ["npm", "start"]
+
+  email-service:
+    build: ./email-service
+    container_name: email-service
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network
+    environment:
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672
+      - NODE_ENV=production
+    volumes:
+      - ./email-service:/app
+    command: ["npm", "start"]
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    depends_on:
+      - rabbitmq
+      - postgres
+    networks:
+      - app-network
+    environment:
+      - RABBITMQ_URL=amqp://user:password@rabbitmq:5672
+      - DATABASE_URL=postgres://admin:admin@postgres:5432/notifications
+      - NODE_ENV=production
+    volumes:
+      - ./notification-service:/app
+    command: ["npm", "start"]
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
