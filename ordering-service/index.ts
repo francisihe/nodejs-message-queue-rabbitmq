@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 app.use('/api', orderRoutes);
 
-sequelize.sync().then(() => console.log('📦 Database Connected'));
+// sequelize.sync().then(() => console.log('📦 Database Connected'));
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`🚀 Ordering Service running on port ${PORT}`));
