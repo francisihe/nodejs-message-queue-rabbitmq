@@ -1,7 +1,7 @@
-import * as express from 'express';
-import * as dotenv from 'dotenv';
-import orderRoutes from './routes/orderRoutes';
-import { sequelize } from './models/order';
+import express from 'express';
+import dotenv from 'dotenv';
+import orderRoutes from './src/routes/orderRoutes';
+import { sequelize } from './src/models/order';
 
 dotenv.config();
 const app = express();
